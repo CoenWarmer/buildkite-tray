@@ -99,7 +99,7 @@ export default function NotificationApp(): React.JSX.Element | null {
   return (
     <div
       ref={wrapperRef}
-      className="p-4 bg-buildkite-dark"
+      className="p-0 bg-buildkite-dark"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
