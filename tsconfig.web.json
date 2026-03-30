@@ -1,0 +1,20 @@
+{
+  "include": ["src/renderer/**/*", "src/renderer/**/*.d.ts", "src/shared/**/*"],
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@renderer/*": ["src/renderer/main/src/*"]
+    },
+    "outDir": "out",
+    "skipLibCheck": true
+  }
+}
