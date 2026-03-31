@@ -22,13 +22,10 @@ jobs:
 
       - name: Build and package
         run: npm run dist
-        env:
-          GH_TOKEN: ${{ secrets.G_TOKEN }}
 
       - name: Upload DMG to release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.dmg
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
+          token: ${{ secrets.G_TOKEN }}
