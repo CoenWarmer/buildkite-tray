@@ -1,0 +1,8 @@
+version: 0.1.0
+files:
+  - url: buildkite-tray-0.1.0.dmg
+    sha512: AVfTUeBoyv8Zi22GoBuUbLq7t+T1IZlT8SmJHC9hInwaLutEr/FtgEL8mcCLxtKvYke8AcunomT1DaoAuwjAIg==
+    size: 95944818
+path: buildkite-tray-0.1.0.dmg
+sha512: AVfTUeBoyv8Zi22GoBuUbLq7t+T1IZlT8SmJHC9hInwaLutEr/FtgEL8mcCLxtKvYke8AcunomT1DaoAuwjAIg==
+releaseDate: '2026-03-31T10:43:51.512Z'

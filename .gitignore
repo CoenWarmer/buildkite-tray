@@ -1,3 +1,10 @@
+# Build output — exclude unpacked app directories (Electron Framework exceeds GitHub's 100MB limit)
+# The .dmg files are kept for distribution
+dist/mac/
+dist/mac-arm64/
+dist/win-unpacked/
+dist/linux-unpacked/
+
 # Logs
 logs
 *.log
@@ -82,7 +89,6 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/

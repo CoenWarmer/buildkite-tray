@@ -1,0 +1,54 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.buildkite.tray
+productName: Buildkite Tray
+extraResources:
+  - from: resources
+files:
+  - filter:
+      - '!**/.vscode/*'
+      - '!src/*'
+      - '!electron.vite.config.{js,ts,mjs,cjs}'
+      - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+      - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+      - '!{tsconfig.json,tsconfig.*}'
+      - '!build/{icon,*}.{icns,ico,png}'
+mac:
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    - LSUIElement: true
+    - NSCameraUsageDescription: Application requests access to the device's camera.
+    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
+    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
+    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  notarize: false
+  target:
+    - target: dmg
+      arch:
+        - arm64
+dmg:
+  artifactName: ${name}-${version}.${ext}
+  title: ${productName} ${version}
+win:
+  executableName: buildkite-tray
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+linux:
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: electronjs.org
+  category: Utility
+appImage:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false
+publish:
+  provider: generic
+  url: https://example.com/auto-update
+  useMultipleRangeRequest: false
+electronVersion: 31.7.7
