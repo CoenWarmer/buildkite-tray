@@ -1,7 +1,5 @@
 # Buildkite Tray
 
-<img width="480" height="320" alt="Mark" src="https://github.com/user-attachments/assets/a3e899e5-0a4d-4d65-a043-032b09a102ac" />
-
 **Please note: This app is not an official Buildkite app. It is provided 'as is'.**
 
 ## Check the status of your Buildkite builds from your tray
