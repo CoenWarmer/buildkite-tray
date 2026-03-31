@@ -3,6 +3,7 @@ directories:
   buildResources: build
 appId: com.buildkite.tray
 productName: Buildkite Tray
+compression: maximum
 extraResources:
   - from: resources
 files:
@@ -30,6 +31,7 @@ mac:
 dmg:
   artifactName: ${name}-${version}.${ext}
   title: ${productName} ${version}
+  writeUpdateInfo: false
 win:
   executableName: buildkite-tray
 nsis:
