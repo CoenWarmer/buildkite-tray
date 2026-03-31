@@ -4,7 +4,7 @@
 
 **Please note: This app is not an official Buildkite app. It is provided 'as is'.**
 
-## Check the status of your Buildkite builds from your tray.
+## Check the status of your Buildkite builds from your tray
 
 * Quick, glanceable information on the status of your builds, your teams builds, and your orgs builds.
 
@@ -17,3 +17,13 @@
 * Quickly open your Builds or jobs on the Buildkite UI.
 
 * See how many builds are running in your org.
+
+## Installation
+
+* After downloading the DMG and dragging the app to Applications, open a terminal and run `xattr -cr "/Applications/Buildkite Tray.app"`.
+* Set it to run on startup (optional)
+* Start the app
+* Get a Buildkite token
+* Enter your Github username
+
+Good to go!
