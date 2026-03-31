@@ -1,6 +1,7 @@
 import { app, ipcMain, shell, BrowserWindow } from 'electron'
 import { Settings } from '../shared/types'
 import { getSettings, saveSettings, saveDismissedBuilds } from './store'
+import { checkForUpdates } from './updater'
 import {
   getCachedBuilds,
   getCachedCurrentUser,
@@ -68,6 +69,8 @@ export function registerIpcHandlers(): void {
     setDismissedBuilds(ids)
     saveDismissedBuilds(ids)
   })
+
+  ipcMain.handle('check-for-updates', () => checkForUpdates())
 
   ipcMain.handle('refresh', async (_event, resetUser = false) => {
     await triggerRefresh(resetUser)

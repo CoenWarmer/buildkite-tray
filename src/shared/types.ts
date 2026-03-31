@@ -47,6 +47,14 @@ export interface PollStatus {
   isPolling: boolean
 }
 
+export interface UpdateInfo {
+  currentVersion: string
+  latestVersion: string
+  hasUpdate: boolean
+  releaseUrl: string
+  releaseName: string | null
+}
+
 export interface IpcApi {
   getSettings: () => Promise<Settings>
   saveSettings: (settings: Settings) => Promise<void>
@@ -57,6 +65,7 @@ export interface IpcApi {
   getDiscoveredOrgs: () => Promise<string[]>
   getDebugInfo: () => Promise<{ orgs: string[]; totalBuilds: number; liveProbe: string; sampleBranches: string[] }>
   setDismissedBuilds: (ids: string[]) => Promise<void>
+  checkForUpdates: () => Promise<UpdateInfo>
   refresh: () => Promise<void>
   setPinned: (value: boolean) => Promise<void>
   quit: () => Promise<void>

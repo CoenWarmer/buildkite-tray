@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useEffect } from 'react'
-import { CurrentUser, Settings } from '../../../../shared/types'
+import { CurrentUser, Settings, UpdateInfo } from '../../../../shared/types'
 import { AddIcon, EyeIcon, EyeOffIcon, RemoveIcon } from '../../../shared/Icons'
 
 interface Props {
   settings: Settings | null
   currentUser: CurrentUser | null
+  updateInfo: UpdateInfo | null
   onSave: (settings: Settings) => void
   onCancel: () => void
 }
@@ -12,6 +13,7 @@ interface Props {
 export default function SettingsView({
   settings,
   currentUser,
+  updateInfo,
   onSave,
   onCancel
 }: Props): React.JSX.Element {
@@ -66,6 +68,26 @@ export default function SettingsView({
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
+        {/* Update available banner */}
+        {updateInfo?.hasUpdate && (
+          <section className="flex items-center justify-between gap-3 bg-buildkite-green/10 border border-buildkite-green/20 rounded-lg px-3 py-2.5">
+            <div>
+              <p className="text-xs font-medium text-buildkite-green">
+                Update available — v{updateInfo.latestVersion}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                You are on v{updateInfo.currentVersion}
+              </p>
+            </div>
+            <button
+              onClick={() => window.api.openUrl(updateInfo.releaseUrl)}
+              className="flex-shrink-0 px-3 py-1.5 text-xs font-medium bg-buildkite-green text-black rounded-md hover:bg-green-400 transition-colors"
+            >
+              Download
+            </button>
+          </section>
+        )}
+
         {/* API Token */}
         <section>
           <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">

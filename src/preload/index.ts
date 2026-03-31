@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { Build, CurrentUser, IpcApi, PollStatus, Settings } from '../shared/types'
+import { Build, CurrentUser, IpcApi, PollStatus, Settings, UpdateInfo } from '../shared/types'
 
 const api: IpcApi = {
   getSettings: (): Promise<Settings> =>
@@ -27,6 +27,9 @@ const api: IpcApi = {
 
   setDismissedBuilds: (ids: string[]): Promise<void> =>
     ipcRenderer.invoke('set-dismissed-builds', ids),
+
+  checkForUpdates: (): Promise<UpdateInfo> =>
+    ipcRenderer.invoke('check-for-updates'),
 
   refresh: (): Promise<void> =>
     ipcRenderer.invoke('refresh'),

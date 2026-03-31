@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Build, CurrentUser, Settings } from '../../../shared/types'
+import { Build, CurrentUser, Settings, UpdateInfo } from '../../../shared/types'
 import PipelineList from './components/PipelineList'
 import SettingsView from './components/Settings'
 import {
@@ -26,6 +26,7 @@ export default function App(): React.JSX.Element {
   const [isPinned, setIsPinned] = useState(false)
   const [pollError, setPollError] = useState<string | null>(null)
   const [activityData, setActivityData] = useState<number[]>([])
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
 
   // Load initial data
   useEffect(() => {
@@ -58,6 +59,13 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     window.api.getCurrentUser().then(setCurrentUser)
   }, [builds])
+
+  // Check for updates once on startup
+  useEffect(() => {
+    window.api.checkForUpdates().then((info) => {
+      if (info.hasUpdate) setUpdateInfo(info)
+    }).catch(() => {})
+  }, [])
 
   // Sync pinned state pushed from main process (e.g. on window close while pinned)
   useEffect(() => {
@@ -174,10 +182,13 @@ export default function App(): React.JSX.Element {
               </button>
               <button
                 onClick={handleOpenSettings}
-                className="inline-flex items-center justify-center p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                title="Settings"
+                className="relative inline-flex items-center justify-center p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                title={updateInfo ? `Update available: v${updateInfo.latestVersion}` : 'Settings'}
               >
                 <GearIcon />
+                {updateInfo && (
+                  <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-buildkite-green" />
+                )}
               </button>
             </>
           )}
@@ -230,6 +241,7 @@ export default function App(): React.JSX.Element {
           <SettingsView
             settings={settings}
             currentUser={currentUser}
+            updateInfo={updateInfo}
             onSave={handleSettingsSave}
             onCancel={handleBackToPipelines}
           />
