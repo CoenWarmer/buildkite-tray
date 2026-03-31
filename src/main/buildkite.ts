@@ -121,7 +121,16 @@ export async function fetchMineBuilds(token: string, githubUsername: string): Pr
       `&state[]=running&state[]=scheduled&state[]=passed&state[]=failed` +
       `&created_from=${createdFrom}&per_page=100`
   )
-  return builds.map((b) => mapBuild(b, extractOrgSlug(b.url), null))
+  return Promise.all(
+    builds.map(async (b) => {
+      const orgSlug = extractOrgSlug(b.url)
+      const estimatedMs =
+        b.state === 'running' || b.state === 'scheduled'
+          ? await estimateDuration(token, orgSlug, b.pipeline.slug)
+          : null
+      return mapBuild(b, orgSlug, estimatedMs)
+    })
+  )
 }
 
 export function invalidateUserCache(): void {
@@ -130,7 +139,7 @@ export function invalidateUserCache(): void {
   durationCache.clear()
 }
 
-async function _estimateDuration(token: string, orgSlug: string, pipelineSlug: string): Promise<number | null> {
+async function estimateDuration(token: string, orgSlug: string, pipelineSlug: string): Promise<number | null> {
   const key = `${orgSlug}/${pipelineSlug}`
   if (durationCache.has(key)) return durationCache.get(key)!
   try {

@@ -26,7 +26,7 @@ export default function ProgressBar({ build }: Props): React.JSX.Element {
     }
 
     tick()
-    const interval = setInterval(tick, 5000)
+    const interval = setInterval(tick, 1000)
     return () => clearInterval(interval)
   }, [build])
 
