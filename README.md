@@ -8,7 +8,8 @@
 
 * Quick, glanceable information on the status of your builds, your teams builds, and your orgs builds.
 
-  <img width="401" height="568" alt="Screenshot 2026-03-31 at 13 40 52" src="https://github.com/user-attachments/assets/fa1bd97a-1771-4795-9113-2738bf98a230" />
+<img width="467" height="625" alt="Screenshot 2026-03-31 at 16 19 43" src="https://github.com/user-attachments/assets/ef5f2283-0a1b-4e30-ba93-13a639ee659a" />
+
 
 * Receive a notification when a build fails.
 
@@ -20,10 +21,11 @@
 
 ## Installation
 
-* After downloading the DMG and dragging the app to Applications, open a terminal and run `xattr -cr "/Applications/Buildkite Tray.app"`.
-* Set it to run on startup (optional)
-* Start the app
+* `brew tap CoenWarmer/buildkite-tray`
+* `brew install --cask buildkite-tray`
 * Get a Buildkite token
 * Enter your Github username
+
+- Set it to run on startup (optional)
 
 Good to go!
