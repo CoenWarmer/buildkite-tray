@@ -23,6 +23,11 @@ jobs:
       - name: Build and package
         run: npm run dist
 
+      - name: Ad-hoc sign the app
+        run: |
+          codesign --sign - --force --deep --preserve-metadata=entitlements \
+            "dist/mac-arm64/Buildkite Tray.app"
+
       - name: Upload DMG to release
         uses: softprops/action-gh-release@v2
         with:
