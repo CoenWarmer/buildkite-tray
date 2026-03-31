@@ -1,4 +1,4 @@
-# Buildkite Tray
+# 👷‍♀️ Buildkite Tray
 
 **Please note: This app is not an official Buildkite app. It is provided 'as is'.**
 
