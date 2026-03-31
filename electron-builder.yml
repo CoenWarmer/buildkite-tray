@@ -2,6 +2,9 @@ appId: com.buildkite.tray
 productName: Buildkite Tray
 directories:
   buildResources: build
+extraResources:
+  - from: resources
+    to: .
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -10,10 +13,10 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.*}'
   - '!build/{icon,*}.{icns,ico,png}'
-afterSign: build/notarize.js
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
+    - LSUIElement: true
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
@@ -23,7 +26,6 @@ mac:
     - target: dmg
       arch:
         - arm64
-        - x64
 dmg:
   artifactName: ${name}-${version}.${ext}
   title: ${productName} ${version}

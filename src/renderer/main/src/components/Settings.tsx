@@ -9,7 +9,12 @@ interface Props {
   onCancel: () => void
 }
 
-export default function SettingsView({ settings, currentUser, onSave, onCancel }: Props): React.JSX.Element {
+export default function SettingsView({
+  settings,
+  currentUser,
+  onSave,
+  onCancel
+}: Props): React.JSX.Element {
   const [apiToken, setApiToken] = useState(settings?.apiToken ?? '')
   const [githubUsername, setGithubUsername] = useState(settings?.githubUsername ?? '')
   const [repoFilters, setRepoFilters] = useState<string[]>(
@@ -115,7 +120,8 @@ export default function SettingsView({ settings, currentUser, onSave, onCancel }
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-1.5">
-              "Mine" matches builds by creator, commit author email, or GitHub username branch prefix.
+              "Mine" matches builds by creator, commit author email, or GitHub username branch
+              prefix.
             </p>
           </section>
         )}
@@ -136,7 +142,7 @@ export default function SettingsView({ settings, currentUser, onSave, onCancel }
           />
           <p className="text-xs text-gray-500 mt-1.5">
             Buildkite doesn't expose your GitHub username via the API, so enter it manually here.
-            Used to match PR builds with branches like <span className="font-mono text-gray-400">YourUsername:branch-name</span>
+            Case sensitive.
           </p>
         </section>
 
@@ -216,7 +222,10 @@ export default function SettingsView({ settings, currentUser, onSave, onCancel }
             </label>
             <div className="flex flex-wrap gap-1.5">
               {discoveredOrgs.map((slug) => (
-                <span key={slug} className="text-xs bg-white/5 text-gray-400 rounded px-2 py-1 font-mono">
+                <span
+                  key={slug}
+                  className="text-xs bg-white/5 text-gray-400 rounded px-2 py-1 font-mono"
+                >
                   {slug}
                 </span>
               ))}
