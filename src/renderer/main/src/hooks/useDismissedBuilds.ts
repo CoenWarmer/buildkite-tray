@@ -42,13 +42,19 @@ export function useDismissedBuilds(): {
   dismissedIds: Set<string>
   dismiss: (buildId: string) => void
 } {
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(load)
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => {
+    const ids = load()
+    // Sync persisted dismissals to the main process on startup
+    window.api.setDismissedBuilds([...ids])
+    return ids
+  })
 
   const dismiss = useCallback((buildId: string) => {
     setDismissedIds((prev) => {
       const next = new Set(prev)
       next.add(buildId)
       save(next)
+      window.api.setDismissedBuilds([...next])
       return next
     })
   }, [])

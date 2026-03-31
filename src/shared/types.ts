@@ -53,8 +53,10 @@ export interface IpcApi {
   getBuilds: () => Promise<Build[]>
   getStatus: () => Promise<PollStatus>
   getCurrentUser: () => Promise<CurrentUser | null>
+  getMineBuilds: () => Promise<Build[]>
   getDiscoveredOrgs: () => Promise<string[]>
-  getDebugInfo: () => Promise<{ orgs: string[]; totalBuilds: number; buildBranches: Array<{ branch: string; state: string; pipeline: string; creatorId: string | null; authorEmail: string | null }> }>
+  getDebugInfo: () => Promise<{ orgs: string[]; totalBuilds: number; liveProbe: string; sampleBranches: string[] }>
+  setDismissedBuilds: (ids: string[]) => Promise<void>
   refresh: () => Promise<void>
   setPinned: (value: boolean) => Promise<void>
   quit: () => Promise<void>

@@ -17,10 +17,16 @@ const api: IpcApi = {
   getCurrentUser: (): Promise<CurrentUser | null> =>
     ipcRenderer.invoke('get-current-user'),
 
+  getMineBuilds: (): Promise<Build[]> =>
+    ipcRenderer.invoke('get-mine-builds'),
+
   getDiscoveredOrgs: (): Promise<string[]> =>
     ipcRenderer.invoke('get-discovered-orgs'),
 
   getDebugInfo: () => ipcRenderer.invoke('get-debug-info'),
+
+  setDismissedBuilds: (ids: string[]): Promise<void> =>
+    ipcRenderer.invoke('set-dismissed-builds', ids),
 
   refresh: (): Promise<void> =>
     ipcRenderer.invoke('refresh'),

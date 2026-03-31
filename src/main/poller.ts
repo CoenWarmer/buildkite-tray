@@ -8,7 +8,7 @@ export function isMyBuild(build: Build, user: CurrentUser, githubUsername?: stri
   if (githubUsername && build.branch.toLowerCase().startsWith(`${githubUsername.toLowerCase()}:`)) return true
   return false
 }
-import { fetchAllBuilds, fetchMyBuildsBackground, fetchCurrentUser, invalidateUserCache } from './buildkite'
+import { fetchAllBuilds, fetchMineBuilds, fetchCurrentUser, invalidateUserCache } from './buildkite'
 import { getSettings } from './store'
 import { showBuildNotification, getNotifiedBuildIds } from './notification'
 
@@ -47,6 +47,9 @@ let isPolling = false
 let windowVisible = false
 let mainWindow: BrowserWindow | null = null
 let onPollComplete: (() => void) | null = null
+// Timestamp set when the user opens the window; terminal-state builds that
+// finished before this are considered "seen" and don't drive the tray icon.
+let lastAcknowledgedAt: number = 0
 
 export function getCachedBuilds(): Build[] {
   return cachedBuilds
@@ -70,6 +73,30 @@ export function setMainWindow(win: BrowserWindow): void {
 
 export function setOnPollComplete(cb: () => void): void {
   onPollComplete = cb
+}
+
+export function acknowledgeBuilds(): void {
+  lastAcknowledgedAt = Date.now()
+}
+
+export function getLastAcknowledgedAt(): number {
+  return lastAcknowledgedAt
+}
+
+let dismissedBuildIds: Set<string> = new Set()
+let onDismissedBuildsChanged: (() => void) | null = null
+
+export function setOnDismissedBuildsChanged(cb: () => void): void {
+  onDismissedBuildsChanged = cb
+}
+
+export function setDismissedBuilds(ids: string[]): void {
+  dismissedBuildIds = new Set(ids)
+  onDismissedBuildsChanged?.()
+}
+
+export function getDismissedBuildIds(): Set<string> {
+  return dismissedBuildIds
 }
 
 export function setWindowVisible(visible: boolean): void {
@@ -103,25 +130,29 @@ async function poll(): Promise<void> {
   isPolling = true
 
   try {
-    // Always keep the current user up to date
-    const user = await fetchCurrentUser(settings.apiToken)
+    // Fetch current user and mine builds in parallel
+    const [user, mineBuilds] = await Promise.all([
+      fetchCurrentUser(settings.apiToken),
+      settings.githubUsername
+        ? fetchMineBuilds(settings.apiToken, settings.githubUsername)
+        : Promise.resolve([] as Build[])
+    ])
+
     cachedCurrentUser = user
-
-    let freshBuilds: Build[]
-    if (!windowVisible && user) {
-      // Background mode: only fetch the current user's builds from configured pipelines
-      freshBuilds = await fetchMyBuildsBackground(settings, user.id, user.email)
-    } else {
-      // Window open: full fetch (all configured pipelines + org-wide)
-      freshBuilds = await fetchAllBuilds(settings)
-    }
-
-    cachedBuilds = mergeBuilds(cachedBuilds, freshBuilds)
-    lastError = null
+    cachedBuilds = mergeBuilds(cachedBuilds, mineBuilds)
     pushToRenderer(cachedBuilds, null)
     onPollComplete?.()
 
-    // Notify for MY builds that just completed (only when main window is hidden)
+    if (windowVisible) {
+      // Full org-wide fetch for the All / My team tabs
+      const fullBuilds = await fetchAllBuilds(settings)
+      cachedBuilds = mergeBuilds(cachedBuilds, fullBuilds)
+      pushToRenderer(cachedBuilds, null)
+    }
+
+    lastError = null
+
+    // Notify for builds that just completed (only when the main window is hidden)
     if (!windowVisible && user) {
       const notified = getNotifiedBuildIds()
       const ONE_MINUTE = 60_000

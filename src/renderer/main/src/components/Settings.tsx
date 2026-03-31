@@ -21,6 +21,7 @@ export default function SettingsView({ settings, currentUser, onSave, onCancel }
   const [isSaving, setIsSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [discoveredOrgs, setDiscoveredOrgs] = useState<string[]>([])
+  const canSave = apiToken.trim().length > 0 && githubUsername.trim().length > 0
 
   useEffect(() => {
     window.api.getDiscoveredOrgs().then(setDiscoveredOrgs)
@@ -234,8 +235,8 @@ export default function SettingsView({ settings, currentUser, onSave, onCancel }
         </button>
         <button
           onClick={handleSave}
-          disabled={isSaving}
-          className="flex-1 py-2 text-sm font-medium text-black bg-buildkite-green hover:bg-green-400 disabled:opacity-60 rounded-lg transition-colors"
+          disabled={!canSave || isSaving}
+          className="flex-1 py-2 text-sm font-medium text-black bg-buildkite-green hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
         >
           {isSaving ? 'Saving…' : 'Save'}
         </button>

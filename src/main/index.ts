@@ -1,8 +1,9 @@
 import { app, BrowserWindow } from 'electron'
-import { createPopupWindow, createTray, destroyTray, updateTrayIcon, unlockTrayIcon } from './tray'
+import { createPopupWindow, createTray, destroyTray, updateTrayIcon } from './tray'
 import { destroyNotificationWindow, setNotificationTray } from './notification'
 import { registerIpcHandlers } from './ipc'
-import { getSettings } from './store'
+import { getSettings, getDismissedBuilds } from './store'
+import { prefetchOrganizations } from './buildkite'
 import {
   startPoller,
   setMainWindow,
@@ -11,6 +12,10 @@ import {
   getCachedCurrentUser,
   setWindowVisible,
   setOnPollComplete,
+  setOnDismissedBuildsChanged,
+  acknowledgeBuilds,
+  getLastAcknowledgedAt,
+  getDismissedBuildIds,
   isMyBuild
 } from './poller'
 
@@ -33,13 +38,26 @@ app.whenReady().then(async () => {
 
   win.on('show', () => {
     setWindowVisible(true)
-    unlockTrayIcon()         // user opened the window — reset icon to live state
-    updateTrayFromBuilds()   // immediately reflect current builds after unlock
+    acknowledgeBuilds()   // mark all current builds as seen — clears the icon
+    updateTrayFromBuilds()
   })
   win.on('hide', () => setWindowVisible(false))
 
-  // Update tray icon after every poll so it always reflects the latest build state
+  // Update tray icon after every poll or when dismissed builds change
   setOnPollComplete(updateTrayFromBuilds)
+  setOnDismissedBuildsChanged(updateTrayFromBuilds)
+
+  // Seed dismissed build IDs before the first poll so the tray icon is correct
+  // from the very first computation, without waiting for the renderer to load.
+  try {
+    setDismissedBuilds(getDismissedBuilds().map((e) => e.id))
+  } catch {
+    // Non-critical — dismissed IDs will be re-synced when the renderer loads.
+  }
+
+  // Warm the org cache immediately so the first mine fetch doesn't have to wait
+  const { apiToken } = getSettings()
+  if (apiToken) prefetchOrganizations(apiToken).catch(() => {})
 
   await startPoller()
 })
@@ -48,24 +66,23 @@ function updateTrayFromBuilds(): void {
   const builds = getCachedBuilds()
   const currentUser = getCachedCurrentUser()
   const settings = getSettings()
+  const lastAcknowledged = getLastAcknowledgedAt()
+  const dismissed = getDismissedBuildIds()
   const myBuilds = currentUser
-    ? builds.filter((b) => isMyBuild(b, currentUser, settings.githubUsername))
+    ? builds.filter((b) => isMyBuild(b, currentUser, settings.githubUsername) && !dismissed.has(b.id))
     : []
 
   const ONE_DAY = 24 * 60 * 60 * 1000
 
-  const myBuildFailed = myBuilds.some(
-    (b) =>
-      b.state === 'failed' &&
-      b.finishedAt &&
-      Date.now() - new Date(b.finishedAt).getTime() < ONE_DAY
-  )
-  const myBuildPassed = myBuilds.some(
-    (b) =>
-      b.state === 'passed' &&
-      b.finishedAt &&
-      Date.now() - new Date(b.finishedAt).getTime() < ONE_DAY
-  )
+  // Only surface finished builds that completed after the user last opened the
+  // window — anything before that was already "seen" and should not drive the icon.
+  const isNewFinished = (finishedAt: string | null): boolean =>
+    !!finishedAt &&
+    Date.now() - new Date(finishedAt).getTime() < ONE_DAY &&
+    new Date(finishedAt).getTime() > lastAcknowledged
+
+  const myBuildFailed = myBuilds.some((b) => b.state === 'failed' && isNewFinished(b.finishedAt))
+  const myBuildPassed = myBuilds.some((b) => b.state === 'passed' && isNewFinished(b.finishedAt))
   const myBuildRunning = myBuilds.some(
     (b) => b.state === 'running' || b.state === 'scheduled'
   )

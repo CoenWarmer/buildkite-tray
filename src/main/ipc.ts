@@ -1,14 +1,15 @@
 import { app, ipcMain, shell, BrowserWindow } from 'electron'
 import { Settings } from '../shared/types'
-import { getSettings, saveSettings } from './store'
+import { getSettings, saveSettings, saveDismissedBuilds } from './store'
 import {
   getCachedBuilds,
   getCachedCurrentUser,
   triggerRefresh,
   getLastError,
-  getIsPolling
+  getIsPolling,
+  setDismissedBuilds
 } from './poller'
-import { getCachedOrgSlugs } from './buildkite'
+import { getCachedOrgSlugs, fetchMineBuilds } from './buildkite'
 import { setPinned } from './tray'
 
 export function registerIpcHandlers(): void {
@@ -24,22 +25,49 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('get-discovered-orgs', () => getCachedOrgSlugs())
 
-  ipcMain.handle('get-debug-info', () => ({
-    orgs: getCachedOrgSlugs(),
-    totalBuilds: getCachedBuilds().length,
-    buildBranches: getCachedBuilds().slice(0, 20).map((b) => ({
-      branch: b.branch,
-      state: b.state,
-      pipeline: b.pipelineSlug,
-      creatorId: b.creatorId,
-      authorEmail: b.authorEmail
-    }))
-  }))
+  ipcMain.handle('get-mine-builds', async () => {
+    const settings = getSettings()
+    if (!settings.apiToken || !settings.githubUsername) return []
+    return fetchMineBuilds(settings.apiToken, settings.githubUsername)
+  })
+
+  ipcMain.handle('get-debug-info', async () => {
+    const settings = getSettings()
+    const orgs = getCachedOrgSlugs()
+    const totalBuilds = getCachedBuilds().length
+
+    let liveProbe = 'not attempted'
+    let sampleBranches: string[] = []
+    if (settings.apiToken && orgs.length > 0) {
+      try {
+        const res = await fetch(
+          `https://api.buildkite.com/v2/organizations/${orgs[0]}/builds?state[]=running&per_page=10`,
+          { headers: { Authorization: `Bearer ${settings.apiToken}` } }
+        )
+        if (res.ok) {
+          const builds = await res.json() as Array<{ branch: string; creator?: { id: string }; pipeline: { slug: string } }>
+          liveProbe = `OK ${res.status} — ${builds.length} running builds returned`
+          sampleBranches = builds.slice(0, 10).map((b) => `${b.pipeline.slug}@${b.branch}`)
+        } else {
+          liveProbe = `ERROR ${res.status} ${res.statusText}`
+        }
+      } catch (e) {
+        liveProbe = `FETCH ERROR: ${e instanceof Error ? e.message : String(e)}`
+      }
+    }
+
+    return { orgs, totalBuilds, liveProbe, sampleBranches }
+  })
 
   ipcMain.handle('get-status', () => ({
     error: getLastError(),
     isPolling: getIsPolling()
   }))
+
+  ipcMain.handle('set-dismissed-builds', (_event, ids: string[]) => {
+    setDismissedBuilds(ids)
+    saveDismissedBuilds(ids)
+  })
 
   ipcMain.handle('refresh', async (_event, resetUser = false) => {
     await triggerRefresh(resetUser)

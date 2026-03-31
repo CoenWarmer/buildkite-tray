@@ -1,6 +1,7 @@
 import { Build, CurrentUser, FailedJob, Settings } from '../shared/types'
 
 const BASE_URL = 'https://api.buildkite.com/v2'
+const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
 interface BkOrg {
   id: string
@@ -94,6 +95,35 @@ export function getCachedOrgSlugs(): string[] {
   return cachedOrgSlugs ?? []
 }
 
+/** Fire-and-forget org pre-fetch so the cache is warm for subsequent calls. */
+export function prefetchOrganizations(token: string): Promise<string[]> {
+  return fetchOrganizations(token)
+}
+
+/** Extracts the org slug from a Buildkite build URL. */
+function extractOrgSlug(buildUrl: string): string {
+  const match = buildUrl.match(/\/organizations\/([^/]+)\//)
+  return match?.[1] ?? ''
+}
+
+/**
+ * Fetches the current user's builds using the global builds endpoint filtered
+ * by branch pattern. GitHub PR branches are named "{username}:{branch}", so
+ * `branch=*{githubUsername}:*` efficiently returns all their builds across
+ * every org and pipeline in a single request.
+ */
+export async function fetchMineBuilds(token: string, githubUsername: string): Promise<Build[]> {
+  if (!githubUsername) return []
+  const createdFrom = new Date(Date.now() - ONE_DAY_MS).toISOString()
+  const builds = await apiFetch<BkBuild[]>(
+    token,
+    `/builds?branch=*${githubUsername}:*` +
+      `&state[]=running&state[]=scheduled&state[]=passed&state[]=failed` +
+      `&created_from=${createdFrom}&per_page=100`
+  )
+  return builds.map((b) => mapBuild(b, extractOrgSlug(b.url), null))
+}
+
 export function invalidateUserCache(): void {
   cachedCurrentUser = null
   cachedOrgSlugs = null
@@ -185,33 +215,3 @@ export async function fetchAllBuilds(settings: Settings): Promise<Build[]> {
   return results.flat()
 }
 
-export async function fetchMyBuildsBackground(
-  settings: Settings,
-  currentUserId: string,
-  currentUserEmail?: string
-): Promise<Build[]> {
-  if (!settings.apiToken) return []
-
-  const orgSlugs = await fetchOrganizations(settings.apiToken)
-  if (!orgSlugs.length) return []
-
-  const results = await Promise.all(
-    orgSlugs.map((org) =>
-      apiFetch<BkBuild[]>(
-        settings.apiToken,
-        `/organizations/${org}/builds?state[]=running&state[]=scheduled&state[]=failed&state[]=passed&per_page=10`
-      )
-        .then((builds) =>
-          builds
-            .filter((b) => b.creator?.id === currentUserId || b.author?.email?.toLowerCase() === currentUserEmail?.toLowerCase())
-            .map((b) => mapBuild(b, org, null))
-        )
-        .catch((err) => {
-          console.error(`Background fetch failed for ${org}:`, err.message)
-          return []
-        })
-    )
-  )
-
-  return results.flat()
-}

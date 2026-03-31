@@ -6,10 +6,6 @@ let tray: Tray | null = null
 let popupWindow: BrowserWindow | null = null
 let pinned = false
 
-// Once a terminal state (passed/failed) is shown, lock the icon until the
-// user opens the main window so transient running builds don't clear it.
-let iconLocked = false
-
 function getIconPath(name: string): string {
   if (is.dev) {
     return join(process.cwd(), 'resources', name)
@@ -64,6 +60,7 @@ export function createPopupWindow(): BrowserWindow {
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/main/index.html`)
+    win.webContents.openDevTools({ mode: 'detach' })
   } else {
     win.loadFile(join(__dirname, '../renderer/main/index.html'))
   }
@@ -130,7 +127,6 @@ export function setPinned(win: BrowserWindow, value: boolean): void {
 
 export function updateTrayIcon(state: TrayState): void {
   if (!tray) return
-  if (iconLocked) return
   tray.setImage(createTrayIcon(state))
   tray.setToolTip({
     idle: 'Buildkite Tray',
@@ -138,14 +134,6 @@ export function updateTrayIcon(state: TrayState): void {
     passed: 'Buildkite Tray — Build passed',
     failed: 'Buildkite Tray — Build failed!'
   }[state])
-  // Lock on terminal states so subsequent polls don't overwrite
-  if (state === 'passed' || state === 'failed') {
-    iconLocked = true
-  }
-}
-
-export function unlockTrayIcon(): void {
-  iconLocked = false
 }
 
 export function destroyTray(): void {

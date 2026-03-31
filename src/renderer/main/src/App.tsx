@@ -14,6 +14,8 @@ import {
 
 type View = 'pipelines' | 'settings'
 
+const SPARKLINE_MAX_POINTS = 50
+
 export default function App(): React.JSX.Element {
   const [view, setView] = useState<View>('pipelines')
   const [builds, setBuilds] = useState<Build[]>([])
@@ -23,6 +25,7 @@ export default function App(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true)
   const [isPinned, setIsPinned] = useState(false)
   const [pollError, setPollError] = useState<string | null>(null)
+  const [activityData, setActivityData] = useState<number[]>([])
 
   // Load initial data
   useEffect(() => {
@@ -37,6 +40,9 @@ export default function App(): React.JSX.Element {
         setBuilds(b)
         setPollError(status.error)
         setCurrentUser(user)
+        if (!s.apiToken || !s.githubUsername) {
+          setView('settings')
+        }
         // If there's no token, or if the cache already has builds, stop loading.
         // Otherwise keep isLoading=true until the first onBuildsUpdated push.
         if (!s.apiToken || b.length > 0 || status.error) {
@@ -63,6 +69,11 @@ export default function App(): React.JSX.Element {
     const unsubBuilds = window.api.onBuildsUpdated((newBuilds) => {
       setBuilds(newBuilds)
       setIsLoading(false)
+      const count = newBuilds.filter((b) => b.state === 'running' || b.state === 'scheduled').length
+      setActivityData((prev) => {
+        const next = [...prev, count]
+        return next.length > SPARKLINE_MAX_POINTS ? next.slice(-SPARKLINE_MAX_POINTS) : next
+      })
     })
     const unsubError = window.api.onPollError((error) => {
       setPollError(error)
@@ -152,6 +163,7 @@ export default function App(): React.JSX.Element {
                   <WarningIcon />
                 </div>
               )}
+              <SparkLine data={activityData} />
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
@@ -253,6 +265,43 @@ function LoadingState(): React.JSX.Element {
         })}
       </svg>
       <span className="text-xs text-gray-500">Connecting…</span>
+    </div>
+  )
+}
+
+function SparkLine({ data }: { data: number[] }): React.JSX.Element | null {
+  if (data.length < 2) return null
+
+  const W = 48
+  const H = 14
+  const max = Math.max(...data, 1)
+
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * W
+    const y = H - 1 - (v / max) * (H - 3)
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+
+  const [lx, ly] = pts[pts.length - 1].split(',').map(Number)
+  const current = data[data.length - 1]
+
+  return (
+    <div
+      className="flex items-center opacity-60 text-gray-300 bg-black/10 rounded px-1.5 py-0.5"
+      title={`${current} running build${current !== 1 ? 's' : ''} across the org`}
+      style={{ height: 30 }}
+    >
+      <svg width={W} height={H}>
+        <polyline
+          points={pts.join(' ')}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx={lx} cy={ly} r="1.5" fill="currentColor" />
+      </svg>
     </div>
   )
 }

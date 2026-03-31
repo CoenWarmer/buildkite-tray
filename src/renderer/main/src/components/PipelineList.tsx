@@ -71,7 +71,21 @@ export default function PipelineList({
 }: Props): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<Tab>('mine')
   const [isTabRefreshing, setIsTabRefreshing] = useState(false)
+  const [mineBuilds, setMineBuilds] = useState<Build[]>([])
   const { dismissedIds, dismiss } = useDismissedBuilds()
+
+  // Fast dedicated poll for Mine tab — runs every 5s while Mine is active
+  useEffect(() => {
+    if (activeTab !== 'mine') return
+    let cancelled = false
+    const run = async () => {
+      const fresh = await window.api.getMineBuilds()
+      if (!cancelled) setMineBuilds(fresh)
+    }
+    run()
+    const id = setInterval(run, 5_000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [activeTab])
   // frozenIds: permanent sort freeze — builds stay at their position until they age out
   const [frozenIds, setFrozenIds] = useState<Set<string>>(new Set())
   // highlightIds: temporary visual indicator that a build just finished
@@ -160,7 +174,10 @@ export default function PipelineList({
   const githubUsername = settings?.githubUsername?.toLowerCase() ?? ''
 
   const filteredBuilds = useMemo(() => {
-    const visible = deduplicateBuilds(builds.filter((b) => isVisible(b) && !dismissedIds.has(b.id)))
+    // Mine tab: merge fast mine-specific builds on top of the regular cache
+    const source = activeTab === 'mine' ? deduplicateBuilds([...mineBuilds, ...builds]) : builds
+    const visible = deduplicateBuilds(source.filter((b) => isVisible(b) && !dismissedIds.has(b.id)))
+
     switch (activeTab) {
       case 'mine':
         return sortBuilds(
@@ -182,7 +199,7 @@ export default function PipelineList({
       default:
         return sortBuilds(visible, frozenIds)
     }
-  }, [builds, activeTab, currentUser, frozenIds, repoFilters, dismissedIds])
+  }, [builds, mineBuilds, activeTab, currentUser, frozenIds, repoFilters, dismissedIds, githubUsername])
 
   // Restore scroll position after every list update (declared here so filteredBuilds is in scope)
   useLayoutEffect(() => {
@@ -278,11 +295,11 @@ function EmptyTabState({
   currentUser: CurrentUser | null
   onOpenSettings: () => void
 }): React.JSX.Element {
-  const [debugInfo, setDebugInfo] = useState<{ orgs: string[]; totalBuilds: number } | null>(null)
+  const [debugInfo, setDebugInfo] = useState<{ orgs: string[]; totalBuilds: number; liveProbe: string; sampleBranches: string[] } | null>(null)
 
   useEffect(() => {
     if (tab === 'mine') {
-      window.api.getDebugInfo().then((info) => setDebugInfo({ orgs: info.orgs, totalBuilds: info.totalBuilds }))
+      window.api.getDebugInfo().then((info) => setDebugInfo(info))
     }
   }, [tab])
 
@@ -298,15 +315,17 @@ function EmptyTabState({
   }
 
   if (tab === 'mine') {
+    const hasRepoFilter = !!(currentUser && debugInfo !== null)
     return (
       <EmptyState
         icon={<CheckIcon />}
         title="No builds by you"
         description={
-          debugInfo
-            ? `${debugInfo.totalBuilds} total builds fetched across ${debugInfo.orgs.length} org(s): ${debugInfo.orgs.join(', ') || 'none'}`
-            : "You haven't triggered any builds in the last 24 hours."
+          hasRepoFilter && !debugInfo
+            ? "Searching…"
+            : "No builds matched. If you work in a large org, set a Repository filter in Settings (e.g. 'kibana') to search more efficiently."
         }
+        action={hasRepoFilter ? undefined : { label: 'Open Settings', onClick: onOpenSettings }}
       />
     )
   }

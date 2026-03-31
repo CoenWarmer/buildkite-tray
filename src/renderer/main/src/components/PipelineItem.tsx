@@ -130,7 +130,7 @@ function getStateLabel(state: Build['state']): string {
 function getStateLabelColor(state: Build['state']): string {
   switch (state) {
     case 'running':
-      return 'text-buildkite-green'
+      return 'text-buildkite-yellow'
     case 'passed':
       return 'text-buildkite-green'
     case 'failed':
